@@ -1,10 +1,13 @@
 package main
 
 import (
-	"fmt"
 	ofp13 "github.com/sangyun-han/monitor4sdn/controller/openflow/openflow13"
 	controller "github.com/sangyun-han/monitor4sdn/controller"
+	"log"
+	"os"
 )
+
+var logger *log.Logger
 
 type SampleController struct {
 	// add any paramter used in controller.
@@ -17,10 +20,10 @@ func NewSampleController() *SampleController {
 
 func (c *SampleController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, dp *controller.Datapath) {
 	// create match
-	fmt.Println("[main][HandlwSwitchFeatures]")
+	logger.Println("[HandlwSwitchFeatures]")
 	ethdst, _ := ofp13.NewOxmEthDst("00:00:00:00:00:00")
 	if ethdst == nil {
-		fmt.Println(ethdst)
+		logger.Println(ethdst)
 		return
 	}
 	match := ofp13.NewOfpMatch()
@@ -57,7 +60,7 @@ func (c *SampleController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, dp
 	mp := ofp13.NewOfpAggregateStatsRequest(0, 0, ofp13.OFPP_ANY, ofp13.OFPG_ANY, 0, 0, mf)
 	dp.Send(mp)
 
-	for i:= 1; i < 4; i++ {
+	for i:= 1; i < 10; i++ {
 		mp2 := ofp13.NewOfpPortStatsRequest(uint32(i), 0)
 		dp.Send(mp2)
 	}
@@ -76,56 +79,58 @@ func (c *SampleController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, dp
 }
 
 func (c *SampleController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, dp *controller.Datapath) {
-	fmt.Println("[main][HandleFlowStatsReply]")
+	logger.Println("[HandleFlowStatsReply]")
 
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpFlowStats); ok {
-			fmt.Println("[main][HandleFlowStatsReply] ByteCount : ", obj.ByteCount)
-			fmt.Println("[main][HandleFlowStatsReply] Instructions : ", obj.Instructions)
-			fmt.Println("[main][HandleFlowStatsReply] Priority : ", obj.Priority)
+			logger.Println("[HandleFlowStatsReply] ByteCount : ", obj.ByteCount)
+			logger.Println("[HandleFlowStatsReply] Instructions : ", obj.Instructions)
+			logger.Println("[HandleFlowStatsReply] Priority : ", obj.Priority)
 		}
 	}
 }
 
 func (c *SampleController) HandlwRoleReqply(msg *ofp13.OfpRole, dp *controller.Datapath) {
-	fmt.Println("[main][HandlwRoleReqply]")
-	fmt.Println("[main][HandlwRoleReqply] : ", msg.Header, msg.Role, msg.GenerationId)
+	logger.Println("[HandlwRoleReqply]")
+	logger.Println("[HandlwRoleReqply] : ", msg.Header, msg.Role, msg.GenerationId)
 }
 
 func (c *SampleController)  HandlePortStatusReply(msg *ofp13.OfpPortStatus, dp *controller.Datapath) {
-	fmt.Println("[main][HandlePortStatusReply]")
-	fmt.Println("[main][HandlePortStatusReply] : ", msg.Desc)
+	logger.Println("[HandlePortStatusReply]")
+	logger.Println("[HandlePortStatusReply] : ", msg.Desc)
 }
 
 func (c *SampleController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, dp *controller.Datapath) {
-	fmt.Println("[main][HandlePortStatsReply]")
-	fmt.Println("[main][HandlePortStatsReply] DPID : ")
+	logger.Println("[HandlePortStatsReply]")
+	logger.Println("[HandlePortStatsReply] DPID : ")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpPortStats); ok {
-			fmt.Println("[main][HandlePortStatsReply] PortNo : ", obj.PortNo)
-			fmt.Println("[main][HandlePortStatsReply] RxBytes : ", obj.RxBytes)
-			fmt.Println("[main][HandlePortStatsReply] TxBytes : ", obj.TxBytes)
+			logger.Println("[HandlePortStatsReply] PortNo : ", obj.PortNo)
+			logger.Println("[HandlePortStatsReply] RxBytes : ", obj.RxBytes)
+			logger.Println("[HandlePortStatsReply] TxBytes : ", obj.TxBytes)
 		}
 	}
 }
 
 func (c *SampleController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, dp *controller.Datapath) {
-	fmt.Println("[main][HandleAggregateStatsReply]")
-	fmt.Println("Handle AggregateStats")
+	logger.Println("[HandleAggregateStatsReply]")
+	logger.Println("Handle AggregateStats")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpAggregateStats); ok {
-			fmt.Println("[main][HandleAggregateStatsReply] PacketCount : ", obj.PacketCount)
-			fmt.Println("[main][HandleAggregateStatsReply] ByteCount : ", obj.ByteCount)
-			fmt.Println("[main][HandleAggregateStatsReply] FlowCount : ", obj.FlowCount)
+			logger.Println("[HandleAggregateStatsReply] PacketCount : ", obj.PacketCount)
+			logger.Println("[HandleAggregateStatsReply] ByteCount : ", obj.ByteCount)
+			logger.Println("[HandleAggregateStatsReply] FlowCount : ", obj.FlowCount)
 		}
 	}
 }
 
 func main() {
-	fmt.Println("Start controller")
+	logger = log.New(os.Stdout, "[INFO][MAIN] ", log.LstdFlags)
+	logger.Println("Start controller")
 	ofc := NewSampleController()
 	controller.GetAppManager().RegisterApplication(ofc)
-
+	
 	// start server
 	controller.ServerLoop(controller.DEFAULT_PORT)
+
 }

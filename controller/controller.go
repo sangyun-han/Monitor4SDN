@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"net"
 	ofp13 "github.com/sangyun-han/monitor4sdn/controller/openflow/openflow13"
+	"log"
+	"os"
 )
 
 var DEFAULT_PORT = 6653
+var logger *log.Logger
 
 /**
  * basic controller
@@ -17,59 +20,56 @@ type OFController struct {
 }
 
 func NewOFController() *OFController {
+	logger.Println("[NewOFController]")
 	ofc := new(OFController)
 	ofc.echoInterval = 60
 	return ofc
 }
 
-func addDatapathToController(ofc *OFController, dp *Datapath) *OFController {
-	controller := ofc
-	controller.datapathList = append(controller.datapathList, *dp)
-	return controller
-}
-
 //func (c *OFController) HandleHello(msg *ofp13.OfpHello, dp *Datapath) {
-//	fmt.Println("recv Hello")
+//	logger.Println("recv Hello")
 //	// send feature request
 //	featureReq := ofp13.NewOfpFeaturesRequest()
 //	(*dp).Send(featureReq)
 //}
 
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, dp *Datapath) {
-	fmt.Println("[controller][HSF]recv SwitchFeatures")
+	logger.Println("[controller][HSF]recv SwitchFeatures")
 	// handle FeatureReply
 	dp.datapathId = msg.DatapathId
 	c.datapathList = append(c.datapathList, *dp)
-	fmt.Println("[controller][HSF] DPID : ", msg.DatapathId)
+	logger.Println("[controller][HSF] DPID : ", msg.DatapathId)
 }
 
 func (c *OFController) HandleEchoRequest(msg *ofp13.OfpHeader, dp *Datapath) {
-	fmt.Println("[controller][HER]recv EchoReq")
+	logger.Println("[controller][HER]recv EchoReq")
 	// send EchoReply
 	echo := ofp13.NewOfpEchoReply()
 	(*dp).Send(echo)
 }
 
 func (c *OFController) ConnectionUp() {
-	fmt.Println("[controller][ConnectionUp]")
+	logger.Println("[controller][ConnectionUp]")
 	// handle connection up
 }
 
 func (c *OFController) ConnectionDown() {
-	fmt.Println("[controller][ConnectionDown]")
+	logger.Println("[controller][ConnectionDown]")
 	// handle connection down
 }
 
 func (c *OFController) sendEchoLoop() {
-	fmt.Println("[controller][sendEchoLoop]")
+	logger.Println("[controller][sendEchoLoop]")
 	// send echo request forever
 }
 
 func ServerLoop(listenPort int) {
+	logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
+	logger.Println("[ServerLoop]")
 	var port int
 
 	if listenPort <= 0 || listenPort >= 65536 {
-		fmt.Println("Invalid port was specified. listen port must be between 0 - 65535.")
+		logger.Println("Invalid port was specified. listen port must be between 0 - 65535.")
 		return
 	}
 	port = listenPort
@@ -102,7 +102,7 @@ func handleConnection(conn *net.TCPConn) {
 	hello := ofp13.NewOfpHello()
 	_, err := conn.Write(hello.Serialize())
 	if err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 	}
 
 	// create datapath
