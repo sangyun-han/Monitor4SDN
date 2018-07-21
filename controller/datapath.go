@@ -22,6 +22,7 @@ type Datapath struct {
  * ctor
  */
 func NewDatapath(conn *net.TCPConn) *Datapath {
+	fmt.Println("[DATAPATH] NewDatapath")
 	dp := new(Datapath)
 	dp.sendBuffer = make(chan *ofp13.OFMessage, 10)
 	dp.conn = conn
@@ -29,6 +30,7 @@ func NewDatapath(conn *net.TCPConn) *Datapath {
 }
 
 func (dp *Datapath) sendLoop() {
+	fmt.Println("[DATAPATH] sendLoop")
 	for {
 		// wait channel
 		msg := <-(dp.sendBuffer)
@@ -43,7 +45,8 @@ func (dp *Datapath) sendLoop() {
 	}
 }
 
-func (dp *Datapath) recvLoop() {
+func (dp *Datapath) receiveLoop() {
+	fmt.Println("[DATAPATH] receiveLoop")
 	buf := make([]byte, 1024*64)
 	for {
 		// read
@@ -64,6 +67,7 @@ func (dp *Datapath) recvLoop() {
 }
 
 func (dp *Datapath) handlePacket(buf []byte) {
+	fmt.Println("[DATAPATH] handlePacket")
 	// parse data
 	msg := ofp13.Parse(buf[0:])
 
@@ -78,6 +82,7 @@ func (dp *Datapath) handlePacket(buf []byte) {
 }
 
 func (dp *Datapath) dispatchHandler(msg ofp13.OFMessage) {
+	fmt.Println("[DATAPATH] dispatchHandler")
 	apps := GetAppManager().GetApplications()
 	for _, app := range apps {
 		switch msgi := msg.(type) {
@@ -219,6 +224,7 @@ func (dp *Datapath) dispatchHandler(msg ofp13.OFMessage) {
  *
  */
 func (dp *Datapath) Send(message ofp13.OFMessage) bool {
+	fmt.Println("[DATAPATH] Send")
 	// push data
 	(dp.sendBuffer) <- &message
 	return true

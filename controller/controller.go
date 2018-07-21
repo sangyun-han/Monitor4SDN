@@ -98,6 +98,7 @@ func ServerLoop(listenPort int) {
  *
  */
 func handleConnection(conn *net.TCPConn) {
+	logger.Println("[handleConnection]")
 	// send hello
 	hello := ofp13.NewOfpHello()
 	_, err := conn.Write(hello.Serialize())
@@ -109,6 +110,6 @@ func handleConnection(conn *net.TCPConn) {
 	dp := NewDatapath(conn)
 
 	// launch goroutine
-	go dp.recvLoop()
+	go dp.receiveLoop()
 	go dp.sendLoop()
 }
