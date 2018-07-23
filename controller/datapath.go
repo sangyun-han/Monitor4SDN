@@ -72,6 +72,7 @@ func (dp *Datapath) handlePacket(buf []byte) {
 	msg := ofp13.Parse(buf[0:])
 
 	if _, ok := msg.(*ofp13.OfpHello); ok {
+		// connected switch, session on
 		// handle hello
 		featureReq := ofp13.NewOfpFeaturesRequest()
 		dp.Send(featureReq)
