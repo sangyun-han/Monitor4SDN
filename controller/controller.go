@@ -6,17 +6,28 @@ import (
 	ofp13 "github.com/sangyun-han/monitor4sdn/controller/openflow/openflow13"
 	"log"
 	"os"
+	"sync"
 )
 
 var DEFAULT_PORT = 6653
 var logger *log.Logger
 
+type AppInterface interface {
+	// A switch connected to the SDN controller
+	SwitchConnected(sw *OFSwitch)
+
+	// Switch disconnected from the SDN controller
+	SwitchDisconnected(sw *OFSwitch)
+}
+
 /**
  * basic controller
  */
 type OFController struct {
+	app          AppInterface
 	echoInterval int32 // echo interval
-	datapathList []OFSwitch
+	switchDB     map[uint64]*OFSwitch
+	waitGroup    sync.WaitGroup
 }
 
 func NewOFController() *OFController {
@@ -24,25 +35,12 @@ func NewOFController() *OFController {
 	logger.Println("[NewOFController]")
 	ofc := new(OFController)
 	ofc.echoInterval = 60
+	ofc.switchDB = make(map[uint64]*OFSwitch)
 	return ofc
 }
 
-func (c *OFController) ConnectionUp() {
-	logger.Println("[controller][ConnectionUp]")
-	// handle connection up
-}
 
-func (c *OFController) ConnectionDown() {
-	logger.Println("[controller][ConnectionDown]")
-	// handle connection down
-}
-
-func (c *OFController) sendEchoLoop() {
-	logger.Println("[controller][sendEchoLoop]")
-	// send echo request forever
-}
-
-func ServerLoop(listenPort int) {
+func Listen(listenPort int) {
 	//logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
 	logger.Println("[ServerLoop]")
 	var port int
@@ -69,28 +67,32 @@ func ServerLoop(listenPort int) {
 		if err != nil {
 			return
 		}
-		go handleConnection(conn)
+		ofc.waitGroup.Add(1)
+		go ofc.handleConnection(conn)
 	}
 }
 
 /**
  *
  */
-func handleConnection(conn *net.TCPConn) {
+func (c *OFController) handleConnection(conn *net.TCPConn) {
 	logger.Println("[handleConnection]")
-	// send hello
+
+	defer c.waitGroup.Done()
+
+	// Send openflow 1.3 Hello by default
 	hello := ofp13.NewOfpHello()
 	_, err := conn.Write(hello.Serialize())
 	if err != nil {
 		logger.Println(err)
 	}
 
-	// create datapath
+	// create ofSwitch
 	sw := NewSwitch(conn)
 
 	// launch goroutine
 	go sw.receiveLoop()
-	go sw.sendLoop()
+	//go sw.sendLoop()
 }
 
 

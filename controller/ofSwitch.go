@@ -12,31 +12,38 @@ import (
 type OFSwitch struct {
 	buffer     chan *bytes.Buffer
 	conn       *net.TCPConn
-	OFSwitchId uint64
+	dpid       uint64
 	sendBuffer chan *ofp13.OFMessage
-	ofpversion string
+	ofVersion  string
 	ports      int
+	app        AppInterface
 }
 
-/**
- * ctor
- */
+// Constructor
 func NewSwitch(conn *net.TCPConn) *OFSwitch {
 	fmt.Println("[OFSwitch] NewOFSwitch")
-	dp := new(OFSwitch)
-	dp.sendBuffer = make(chan *ofp13.OFMessage, 10)
-	dp.conn = conn
-	return dp
+
+	sw := new(OFSwitch)
+	sw.sendBuffer = make(chan *ofp13.OFMessage, 10)
+	sw.conn = conn
+
+
+	return sw
 }
 
-func (dp *OFSwitch) sendLoop() {
+func (sw *OFSwitch) switchConnected() {
+	sw.app.SwitchConnected(sw)
+}
+
+
+func (sw *OFSwitch) sendLoop() {
 	fmt.Println("[OFSwitch] sendLoop")
 	for {
 		// wait channel
-		msg := <-(dp.sendBuffer)
+		msg := <-(sw.sendBuffer)
 		// serialize data
 		byteData := (*msg).Serialize()
-		_, err := dp.conn.Write(byteData)
+		_, err := sw.conn.Write(byteData)
 		if err != nil {
 			fmt.Println("failed to write conn")
 			fmt.Println(err)
@@ -45,12 +52,12 @@ func (dp *OFSwitch) sendLoop() {
 	}
 }
 
-func (dp *OFSwitch) receiveLoop() {
+func (sw *OFSwitch) receiveLoop() {
 	fmt.Println("[OFSwitch] receiveLoop")
 	buf := make([]byte, 1024*64)
 	for {
 		// read
-		size, err := dp.conn.Read(buf)
+		size, err := sw.conn.Read(buf)
 		if err != nil {
 			fmt.Println("failed to read conn")
 			fmt.Println(err)
@@ -60,7 +67,7 @@ func (dp *OFSwitch) receiveLoop() {
 		// tmp := make([]byte, 2048)
 		for i := 0; i < size; {
 			msgLen := binary.BigEndian.Uint16(buf[i+2:])
-			dp.handlePacket(buf[i : i+(int)(msgLen)])
+			sw.handlePacket(buf[i : i+(int)(msgLen)])
 			i += (int)(msgLen)
 		}
 	}
@@ -227,6 +234,14 @@ func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
 func (sw *OFSwitch) Send(message ofp13.OFMessage) bool {
 	fmt.Println("[OFSwitch] Send")
 	// push data
-	(sw.sendBuffer) <- &message
+	//(sw.sendBuffer) <- &message
+
+	byteData := message.Serialize()
+	_, err := sw.conn.Write(byteData)
+	if err != nil {
+		fmt.Println("failed to write conn : ", err)
+		return false
+	}
+
 	return true
 }
