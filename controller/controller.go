@@ -27,40 +27,6 @@ func NewOFController() *OFController {
 	return ofc
 }
 
-//func (c *OFController) HandleHello(msg *ofp13.OfpHello, dp *Datapath) {
-//	logger.Println("recv Hello")
-//	// send feature request
-//	featureReq := ofp13.NewOfpFeaturesRequest()
-//	(*dp).Send(featureReq)
-//}
-
-//func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, dp *Datapath) {
-//	logger.Println("[HandlePortStatsReply]")
-//	logger.Println("[HandlePortStatsReply] DPID : ")
-//	for _, mp := range msg.Body {
-//		if obj, ok := mp.(*ofp13.OfpPortStats); ok {
-//			logger.Println("[HandlePortStatsReply] PortNo : ", obj.PortNo)
-//			logger.Println("[HandlePortStatsReply] RxBytes : ", obj.RxBytes)
-//			logger.Println("[HandlePortStatsReply] TxBytes : ", obj.TxBytes)
-//		}
-//	}
-//}
-
-//func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, dp *Datapath) {
-//	logger.Println("[controller][HSF]recv SwitchFeatures")
-//	// handle FeatureReply
-//	dp.datapathId = msg.DatapathId
-//	c.datapathList = append(c.datapathList, *dp)
-//	logger.Println("[controller][HSF] DPID : ", msg.DatapathId)
-//}
-
-func (c *OFController) HandleEchoRequest(msg *ofp13.OfpHeader, dp *Datapath) {
-	logger.Println("[controller][HER]recv EchoReq")
-	// send EchoReply
-	echo := ofp13.NewOfpEchoReply()
-	(*dp).Send(echo)
-}
-
 func (c *OFController) ConnectionUp() {
 	logger.Println("[controller][ConnectionUp]")
 	// handle connection up
@@ -129,6 +95,7 @@ func handleConnection(conn *net.TCPConn) {
 
 
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, dp *Datapath) {
+	logger.Println("[HandleSwitchFeatures] DPID : ", msg.DatapathId)
 	// create match
 	logger.Println("[HandlwSwitchFeatures]")
 	ethdst, _ := ofp13.NewOxmEthDst("00:00:00:00:00:00")
@@ -232,4 +199,38 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, d
 			logger.Println("[HandleAggregateStatsReply] FlowCount : ", obj.FlowCount)
 		}
 	}
+}
+
+//func (c *OFController) HandleHello(msg *ofp13.OfpHello, dp *Datapath) {
+//	logger.Println("recv Hello")
+//	// send feature request
+//	featureReq := ofp13.NewOfpFeaturesRequest()
+//	(*dp).Send(featureReq)
+//}
+
+//func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, dp *Datapath) {
+//	logger.Println("[HandlePortStatsReply]")
+//	logger.Println("[HandlePortStatsReply] DPID : ")
+//	for _, mp := range msg.Body {
+//		if obj, ok := mp.(*ofp13.OfpPortStats); ok {
+//			logger.Println("[HandlePortStatsReply] PortNo : ", obj.PortNo)
+//			logger.Println("[HandlePortStatsReply] RxBytes : ", obj.RxBytes)
+//			logger.Println("[HandlePortStatsReply] TxBytes : ", obj.TxBytes)
+//		}
+//	}
+//}
+
+//func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, dp *Datapath) {
+//	logger.Println("[controller][HSF]recv SwitchFeatures")
+//	// handle FeatureReply
+//	dp.datapathId = msg.DatapathId
+//	c.datapathList = append(c.datapathList, *dp)
+//	logger.Println("[controller][HSF] DPID : ", msg.DatapathId)
+//}
+
+func (c *OFController) HandleEchoRequest(msg *ofp13.OfpHeader, dp *Datapath) {
+	logger.Println("[controller][HER]recv EchoReq")
+	// send EchoReply
+	echo := ofp13.NewOfpEchoReply()
+	(*dp).Send(echo)
 }
