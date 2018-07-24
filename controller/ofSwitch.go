@@ -8,11 +8,11 @@ import (
 	ofp13 "github.com/sangyun-han/monitor4sdn/controller/openflow/openflow13"
 )
 
-// datapath
-type Datapath struct {
+// OFSwitch
+type OFSwitch struct {
 	buffer     chan *bytes.Buffer
 	conn       *net.TCPConn
-	datapathId uint64
+	OFSwitchId uint64
 	sendBuffer chan *ofp13.OFMessage
 	ofpversion string
 	ports      int
@@ -21,16 +21,16 @@ type Datapath struct {
 /**
  * ctor
  */
-func NewDatapath(conn *net.TCPConn) *Datapath {
-	fmt.Println("[DATAPATH] NewDatapath")
-	dp := new(Datapath)
+func NewSwitch(conn *net.TCPConn) *OFSwitch {
+	fmt.Println("[OFSwitch] NewOFSwitch")
+	dp := new(OFSwitch)
 	dp.sendBuffer = make(chan *ofp13.OFMessage, 10)
 	dp.conn = conn
 	return dp
 }
 
-func (dp *Datapath) sendLoop() {
-	fmt.Println("[DATAPATH] sendLoop")
+func (dp *OFSwitch) sendLoop() {
+	fmt.Println("[OFSwitch] sendLoop")
 	for {
 		// wait channel
 		msg := <-(dp.sendBuffer)
@@ -45,8 +45,8 @@ func (dp *Datapath) sendLoop() {
 	}
 }
 
-func (dp *Datapath) receiveLoop() {
-	fmt.Println("[DATAPATH] receiveLoop")
+func (dp *OFSwitch) receiveLoop() {
+	fmt.Println("[OFSwitch] receiveLoop")
 	buf := make([]byte, 1024*64)
 	for {
 		// read
@@ -66,8 +66,8 @@ func (dp *Datapath) receiveLoop() {
 	}
 }
 
-func (dp *Datapath) handlePacket(buf []byte) {
-	fmt.Println("[DATAPATH] handlePacket")
+func (sw *OFSwitch) handlePacket(buf []byte) {
+	fmt.Println("[OFSwitch] handlePacket")
 	// parse data
 	msg := ofp13.Parse(buf[0:])
 
@@ -75,15 +75,15 @@ func (dp *Datapath) handlePacket(buf []byte) {
 		// connected switch, session on
 		// handle hello
 		featureReq := ofp13.NewOfpFeaturesRequest()
-		dp.Send(featureReq)
+		sw.Send(featureReq)
 	} else {
 		// dispatch handler
-		dp.dispatchHandler(msg)
+		sw.dispatchHandler(msg)
 	}
 }
 
-func (dp *Datapath) dispatchHandler(msg ofp13.OFMessage) {
-	fmt.Println("[DATAPATH] dispatchHandler")
+func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
+	fmt.Println("[OFSwitch] dispatchHandler")
 	apps := GetAppManager().GetApplications()
 	for _, app := range apps {
 		switch msgi := msg.(type) {
@@ -93,19 +93,19 @@ func (dp *Datapath) dispatchHandler(msg ofp13.OFMessage) {
 			// handle echo request
 			case ofp13.OFPT_ECHO_REQUEST:
 				if obj, ok := app.(Of13EchoRequestHandler); ok {
-					obj.HandleEchoRequest(msgi, dp)
+					obj.HandleEchoRequest(msgi, sw)
 				}
 
 			// handle echo reply
 			case ofp13.OFPT_ECHO_REPLY:
 				if obj, ok := app.(Of13EchoReplyHandler); ok {
-					obj.HandleEchoReply(msgi, dp)
+					obj.HandleEchoReply(msgi, sw)
 				}
 
 			// handle Barrier reply
 			case ofp13.OFPT_BARRIER_REPLY:
 				if obj, ok := app.(Of13BarrierReplyHandler); ok {
-					obj.HandleBarrierReply(msgi, dp)
+					obj.HandleBarrierReply(msgi, sw)
 				}
 			default:
 			}
@@ -113,42 +113,42 @@ func (dp *Datapath) dispatchHandler(msg ofp13.OFMessage) {
 		// Recv Error
 		case *ofp13.OfpErrorMsg:
 			if obj, ok := app.(Of13ErrorMsgHandler); ok {
-				obj.HandleErrorMsg(msgi, dp)
+				obj.HandleErrorMsg(msgi, sw)
 			}
 
 		// Recv RoleReply
 		case *ofp13.OfpRole:
 			if obj, ok := app.(Of13RoleReplyHandler); ok {
-				obj.HandleRoleReply(msgi, dp)
+				obj.HandleRoleReply(msgi, sw)
 			}
 
 		// Recv GetAsyncReply
 		case *ofp13.OfpAsyncConfig:
 			if obj, ok := app.(Of13AsyncConfigHandler); ok {
-				obj.HandleAsyncConfig(msgi, dp)
+				obj.HandleAsyncConfig(msgi, sw)
 			}
 
 		// case SwitchFeatures
 		case *ofp13.OfpSwitchFeatures:
 			if obj, ok := app.(Of13SwitchFeaturesHandler); ok {
-				obj.HandleSwitchFeatures(msgi, dp)
+				obj.HandleSwitchFeatures(msgi, sw)
 			}
 
 		// case GetConfigReply
 		case *ofp13.OfpSwitchConfig:
 			if obj, ok := app.(Of13SwitchConfigHandler); ok {
-				obj.HandleSwitchConfig(msgi, dp)
+				obj.HandleSwitchConfig(msgi, sw)
 			}
 		// case PacketIn
 		case *ofp13.OfpPacketIn:
 			if obj, ok := app.(Of13PacketInHandler); ok {
-				obj.HandlePacketIn(msgi, dp)
+				obj.HandlePacketIn(msgi, sw)
 			}
 
 		// case FlowRemoved
 		case *ofp13.OfpFlowRemoved:
 			if obj, ok := app.(Of13FlowRemovedHandler); ok {
-				obj.HandleFlowRemoved(msgi, dp)
+				obj.HandleFlowRemoved(msgi, sw)
 			}
 
 		// case MultipartReply
@@ -156,59 +156,59 @@ func (dp *Datapath) dispatchHandler(msg ofp13.OFMessage) {
 			switch msgi.Type {
 			case ofp13.OFPMP_DESC:
 				if obj, ok := app.(Of13DescStatsReplyHandler); ok {
-					obj.HandleDescStatsReply(msgi, dp)
+					obj.HandleDescStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_FLOW:
 				if obj, ok := app.(Of13FlowStatsReplyHandler); ok {
-					obj.HandleFlowStatsReply(msgi, dp)
+					obj.HandleFlowStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_AGGREGATE:
 				if obj, ok := app.(Of13AggregateStatsReplyHandler); ok {
-					obj.HandleAggregateStatsReply(msgi, dp)
+					obj.HandleAggregateStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_TABLE:
 				if obj, ok := app.(Of13TableStatsReplyHandler); ok {
-					obj.HandleTableStatsReply(msgi, dp)
+					obj.HandleTableStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_PORT_STATS:
 				if obj, ok := app.(Of13PortStatsReplyHandler); ok {
-					obj.HandlePortStatsReply(msgi, dp)
+					obj.HandlePortStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_QUEUE:
 				if obj, ok := app.(Of13QueueStatsReplyHandler); ok {
-					obj.HandleQueueStatsReply(msgi, dp)
+					obj.HandleQueueStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_GROUP:
 				if obj, ok := app.(Of13GroupStatsReplyHandler); ok {
-					obj.HandleGroupStatsReply(msgi, dp)
+					obj.HandleGroupStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_GROUP_DESC:
 				if obj, ok := app.(Of13GroupDescStatsReplyHandler); ok {
-					obj.HandleGroupDescStatsReply(msgi, dp)
+					obj.HandleGroupDescStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_GROUP_FEATURES:
 				if obj, ok := app.(Of13GroupFeaturesStatsReplyHandler); ok {
-					obj.HandleGroupFeaturesStatsReply(msgi, dp)
+					obj.HandleGroupFeaturesStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_METER:
 				if obj, ok := app.(Of13MeterStatsReplyHandler); ok {
-					obj.HandleMeterStatsReply(msgi, dp)
+					obj.HandleMeterStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_METER_CONFIG:
 				if obj, ok := app.(Of13MeterConfigStatsReplyHandler); ok {
-					obj.HandleMeterConfigStatsReply(msgi, dp)
+					obj.HandleMeterConfigStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_METER_FEATURES:
 				if obj, ok := app.(Of13MeterFeaturesStatsReplyHandler); ok {
-					obj.HandleMeterFeaturesStatsReply(msgi, dp)
+					obj.HandleMeterFeaturesStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_TABLE_FEATURES:
 				if obj, ok := app.(Of13TableFeaturesStatsReplyHandler); ok {
-					obj.HandleTableFeaturesStatsReply(msgi, dp)
+					obj.HandleTableFeaturesStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_PORT_DESC:
 				if obj, ok := app.(Of13PortDescStatsReplyHandler); ok {
-					obj.HandlePortDescStatsReply(msgi, dp)
+					obj.HandlePortDescStatsReply(msgi, sw)
 				}
 			case ofp13.OFPMP_EXPERIMENTER:
 				// TODO: implement
@@ -224,9 +224,9 @@ func (dp *Datapath) dispatchHandler(msg ofp13.OFMessage) {
 /**
  *
  */
-func (dp *Datapath) Send(message ofp13.OFMessage) bool {
-	fmt.Println("[DATAPATH] Send")
+func (sw *OFSwitch) Send(message ofp13.OFMessage) bool {
+	fmt.Println("[OFSwitch] Send")
 	// push data
-	(dp.sendBuffer) <- &message
+	(sw.sendBuffer) <- &message
 	return true
 }
