@@ -40,7 +40,7 @@ func NewOFController() *OFController {
 }
 
 
-func Listen(listenPort int) {
+func (c *OFController) Listen(listenPort int) {
 	//logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
 	logger.Println("[ServerLoop]")
 	var port int
@@ -72,9 +72,7 @@ func Listen(listenPort int) {
 	}
 }
 
-/**
- *
- */
+
 func (c *OFController) handleConnection(conn *net.TCPConn) {
 	logger.Println("[handleConnection]")
 
@@ -97,7 +95,9 @@ func (c *OFController) handleConnection(conn *net.TCPConn) {
 
 
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OFSwitch) {
-	logger.Println("[HandleSwitchFeatures] DPID : ", msg.DatapathId)
+	logger.Println("[HandleSwitchFeatures] DPID : ", sw.dpid)
+	c.switchDB[sw.dpid] = sw
+
 	// create match
 	logger.Println("[HandlwSwitchFeatures]")
 	ethdst, _ := ofp13.NewOxmEthDst("00:00:00:00:00:00")

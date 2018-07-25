@@ -27,30 +27,29 @@ func NewSwitch(conn *net.TCPConn) *OFSwitch {
 	sw.sendBuffer = make(chan *ofp13.OFMessage, 10)
 	sw.conn = conn
 
-
 	return sw
 }
 
 func (sw *OFSwitch) switchConnected() {
 	sw.app.SwitchConnected(sw)
+
 }
 
-
-func (sw *OFSwitch) sendLoop() {
-	fmt.Println("[OFSwitch] sendLoop")
-	for {
-		// wait channel
-		msg := <-(sw.sendBuffer)
-		// serialize data
-		byteData := (*msg).Serialize()
-		_, err := sw.conn.Write(byteData)
-		if err != nil {
-			fmt.Println("failed to write conn")
-			fmt.Println(err)
-			return
-		}
-	}
-}
+//func (sw *OFSwitch) sendLoop() {
+//	fmt.Println("[OFSwitch] sendLoop")
+//	for {
+//		// wait channel
+//		msg := <-(sw.sendBuffer)
+//		// serialize data
+//		byteData := (*msg).Serialize()
+//		_, err := sw.conn.Write(byteData)
+//		if err != nil {
+//			fmt.Println("failed to write conn")
+//			fmt.Println(err)
+//			return
+//		}
+//	}
+//}
 
 func (sw *OFSwitch) receiveLoop() {
 	fmt.Println("[OFSwitch] receiveLoop")
@@ -79,8 +78,8 @@ func (sw *OFSwitch) handlePacket(buf []byte) {
 	msg := ofp13.Parse(buf[0:])
 
 	if _, ok := msg.(*ofp13.OfpHello); ok {
+		fmt.Println("[OFSwitch] handlePacket : First FeatureReq")
 		// connected switch, session on
-		// handle hello
 		featureReq := ofp13.NewOfpFeaturesRequest()
 		sw.Send(featureReq)
 	} else {
@@ -138,6 +137,7 @@ func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
 		// case SwitchFeatures
 		case *ofp13.OfpSwitchFeatures:
 			if obj, ok := app.(Of13SwitchFeaturesHandler); ok {
+				sw.dpid = msgi.DatapathId
 				obj.HandleSwitchFeatures(msgi, sw)
 			}
 
