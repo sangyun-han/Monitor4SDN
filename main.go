@@ -13,9 +13,8 @@ func main() {
 	logger.Println("Start controller")
 
 	ofc := controller.NewOFController()
-	controller.GetAppManager().RegisterApplication(ofc)
 
 	// start server
-	controller.Listen(controller.DEFAULT_PORT)
+	ofc.Listen(controller.DEFAULT_PORT)
 
 }
