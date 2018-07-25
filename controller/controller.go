@@ -72,7 +72,6 @@ func Listen(listenPort int) {
 	}
 }
 
-
 func (c *OFController) handleConnection(conn *net.TCPConn) {
 	logger.Println("[handleConnection]")
 
@@ -90,10 +89,10 @@ func (c *OFController) handleConnection(conn *net.TCPConn) {
 
 	// launch goroutine
 	go sw.receiveLoop()
+	go sw.startMonitoring(1)
 
 	// TODO add monitoring loop
 }
-
 
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OFSwitch) {
 	logger.Println("[HandleSwitchFeatures] DPID : ", sw.dpid)
@@ -140,13 +139,11 @@ func (c *OFController)  HandlePortStatusReply(msg *ofp13.OfpPortStatus, sw *OFSw
 }
 
 func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OFSwitch) {
-	logger.Println("[HandlePortStatsReply]")
-	logger.Println("[HandlePortStatsReply] DPID : ")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpPortStats); ok {
-			logger.Println("[HandlePortStatsReply] PortNo : ", obj.PortNo)
-			logger.Println("[HandlePortStatsReply] RxBytes : ", obj.RxBytes)
-			logger.Println("[HandlePortStatsReply] TxBytes : ", obj.TxBytes)
+			logger.Println("[HandlePortStatsReply][",sw.dpid, "] PortNo : ", obj.PortNo)
+			logger.Println("[HandlePortStatsReply][",sw.dpid, "] RxBytes : ", obj.RxBytes)
+			logger.Println("[HandlePortStatsReply][",sw.dpid, "] TxBytes : ", obj.TxBytes)
 		}
 	}
 }

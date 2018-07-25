@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	ofp13 "github.com/sangyun-han/monitor4sdn/controller/openflow/openflow13"
+	"time"
 )
 
 // OFSwitch
@@ -50,6 +51,18 @@ func (sw *OFSwitch) switchConnected() {
 //		}
 //	}
 //}
+
+func (sw *OFSwitch) startMonitoring(interval int) {
+	fmt.Println("[OFSwitch] startMonitoring")
+
+	ticker := time.NewTicker(time.Second * time.Duration(interval))
+	defer ticker.Stop()
+	for t := range ticker.C {
+		_ = t
+		msg := ofp13.NewOfpPortStatsRequest(uint32(1), 0)
+		sw.Send(msg)
+	}
+}
 
 func (sw *OFSwitch) receiveLoop() {
 	fmt.Println("[OFSwitch] receiveLoop")
