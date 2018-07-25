@@ -12,9 +12,6 @@ func main() {
 	logger = log.New(os.Stdout, "[INFO][MAIN] ", log.LstdFlags)
 	logger.Println("Start controller")
 
-	ofc := controller.NewOFController()
-
-	// start server
-	ofc.Listen(controller.DEFAULT_PORT)
-
+	// Start controller
+	controller.Listen(controller.DEFAULT_PORT)
 }

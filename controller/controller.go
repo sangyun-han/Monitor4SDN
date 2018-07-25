@@ -40,8 +40,8 @@ func NewOFController() *OFController {
 }
 
 
-func (c *OFController) Listen(listenPort int) {
-	//logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
+func Listen(listenPort int) {
+	logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
 	logger.Println("[ServerLoop]")
 	var port int
 
@@ -90,7 +90,8 @@ func (c *OFController) handleConnection(conn *net.TCPConn) {
 
 	// launch goroutine
 	go sw.receiveLoop()
-	//go sw.sendLoop()
+
+	// TODO add monitoring loop
 }
 
 
@@ -98,51 +99,10 @@ func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OF
 	logger.Println("[HandleSwitchFeatures] DPID : ", sw.dpid)
 	c.switchDB[sw.dpid] = sw
 
-	// create match
-	logger.Println("[HandlwSwitchFeatures]")
-	ethdst, _ := ofp13.NewOxmEthDst("00:00:00:00:00:00")
-	if ethdst == nil {
-		logger.Println(ethdst)
-		return
-	}
-	match := ofp13.NewOfpMatch()
-	match.Append(ethdst)
-
-	// create Instruction
-	instruction := ofp13.NewOfpInstructionActions(ofp13.OFPIT_APPLY_ACTIONS)
-
-	// create actions
-	seteth, _ := ofp13.NewOxmEthDst("11:22:33:44:55:66")
-	instruction.Append(ofp13.NewOfpActionSetField(seteth))
-
-	// append Instruction
-	instructions := make([]ofp13.OfpInstruction, 0)
-	instructions = append(instructions, instruction)
-
-	// create flow mod
-	fm := ofp13.NewOfpFlowModModify(
-		0, // cookie
-		0, // cookie mask
-		0, // tableid
-		0, // priority
-		ofp13.OFPFF_SEND_FLOW_REM,
-		match,
-		instructions,
-	)
-
-	// send FlowMod
-	sw.Send(fm)
-
-	// Create and send AggregateStatsRequest
-	mf := ofp13.NewOfpMatch()
-	mf.Append(ethdst)
-	mp := ofp13.NewOfpAggregateStatsRequest(0, 0, ofp13.OFPP_ANY, ofp13.OFPG_ANY, 0, 0, mf)
-	sw.Send(mp)
-
-	for i:= 1; i < 10; i++ {
-		mp2 := ofp13.NewOfpPortStatsRequest(uint32(i), 0)
-		sw.Send(mp2)
-	}
+	//for i:= 1; i < 10; i++ {
+	//	mp2 := ofp13.NewOfpPortStatsRequest(uint32(i), 0)
+	//	sw.Send(mp2)
+	//}
 
 	//mp3 := ofp13.NewOfpFlowStatsRequest(0, 0, ofp13.OFPP_ANY, ofp13.OFPG_ANY, 0, 0, ofp13.NewOfpMatch())
 	//sw.Send(mp3)
@@ -203,32 +163,12 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, s
 	}
 }
 
-//func (c *OFController) HandleHello(msg *ofp13.OfpHello, sw *OFSwitch) {
-//	logger.Println("recv Hello")
-//	// send feature request
-//	featureReq := ofp13.NewOfpFeaturesRequest()
-//	(*sw).Send(featureReq)
-//}
-
-//func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OFSwitch) {
-//	logger.Println("[HandlePortStatsReply]")
-//	logger.Println("[HandlePortStatsReply] DPID : ")
-//	for _, mp := range msg.Body {
-//		if obj, ok := mp.(*ofp13.OfpPortStats); ok {
-//			logger.Println("[HandlePortStatsReply] PortNo : ", obj.PortNo)
-//			logger.Println("[HandlePortStatsReply] RxBytes : ", obj.RxBytes)
-//			logger.Println("[HandlePortStatsReply] TxBytes : ", obj.TxBytes)
-//		}
-//	}
-//}
-
-//func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OFSwitch) {
-//	logger.Println("[controller][HSF]recv SwitchFeatures")
-//	// handle FeatureReply
-//	sw.datapathId = msg.DatapathId
-//	c.datapathList = append(c.datapathList, *sw)
-//	logger.Println("[controller][HSF] DPID : ", msg.DatapathId)
-//}
+func (c *OFController) HandleHello(msg *ofp13.OfpHello, sw *OFSwitch) {
+	logger.Println("recv Hello")
+	// send feature request
+	featureReq := ofp13.NewOfpFeaturesRequest()
+	(*sw).Send(featureReq)
+}
 
 func (c *OFController) HandleEchoRequest(msg *ofp13.OfpHeader, sw *OFSwitch) {
 	logger.Println("[controller][HER]recv EchoReq")
