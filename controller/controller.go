@@ -7,7 +7,20 @@ import (
 	"log"
 	"os"
 	"sync"
+	"github.com/influxdata/influxdb/client/v2"
+	"time"
+	"encoding/json"
+	"io/ioutil"
+	"strconv"
 )
+
+type Configuration struct {
+	tsdb_name        string `json:"tsdb_name"`
+	tsdb_addr        string `json:"tsdb_addr"`
+	username         string `json:"username"`
+	password         string `json:"password"`
+	monitor_interval int32  `json:"monitor_interval"`
+}
 
 var DEFAULT_PORT = 6653
 var logger *log.Logger
@@ -28,6 +41,8 @@ type OFController struct {
 	echoInterval int32 // echo interval
 	switchDB     map[uint64]*OFSwitch
 	waitGroup    sync.WaitGroup
+	dbClient client.Client
+	bpConfig client.BatchPointsConfig
 }
 
 func NewOFController() *OFController {
@@ -36,9 +51,41 @@ func NewOFController() *OFController {
 	ofc := new(OFController)
 	ofc.echoInterval = 60
 	ofc.switchDB = make(map[uint64]*OFSwitch)
+
+	file, err := ioutil.ReadFile("conf.json")
+	if err != nil {
+		logger.Println("File error : ", err)
+	}
+	logger.Println(string(file))
+	config := Configuration{
+
+	}
+	err = json.Unmarshal(file, &config)
+
+	if err != nil {
+		logger.Fatalln("Error : ", err)
+	}
+	logger.Println(config.username)
+
+	// Create a new client
+	c, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:config.tsdb_addr,
+		Username:config.username,
+		Password:config.password,
+	})
+
+	if err != nil {
+		logger.Fatal(err)
+	}
+	//defer c.Close()
+	ofc.dbClient = c
+	ofc.bpConfig = client.BatchPointsConfig{
+		Database:config.tsdb_name,
+		Precision: "ns",
+	}
+
 	return ofc
 }
-
 
 func Listen(listenPort int) {
 	logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
@@ -94,6 +141,10 @@ func (c *OFController) handleConnection(conn *net.TCPConn) {
 	// TODO add monitoring loop
 }
 
+func (c *OFController) writePoints(clnt client.Client, bp client.BatchPoints) {
+
+}
+
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OFSwitch) {
 	logger.Println("[HandleSwitchFeatures] DPID : ", sw.dpid)
 	c.switchDB[sw.dpid] = sw
@@ -144,6 +195,48 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			logger.Println("[HandlePortStatsReply][",sw.dpid, "] PortNo : ", obj.PortNo)
 			logger.Println("[HandlePortStatsReply][",sw.dpid, "] RxBytes : ", obj.RxBytes)
 			logger.Println("[HandlePortStatsReply][",sw.dpid, "] TxBytes : ", obj.TxBytes)
+
+			bp, err := client.NewBatchPoints(c.bpConfig)
+			if err != nil {
+				logger.Fatal(err)
+			}
+			tags := map[string]string{
+				"dpid": strconv.FormatUint(sw.dpid, 10),
+				"portNo": strconv.FormatUint(uint64(obj.PortNo), 10),
+			}
+			fields := map[string]interface{} {
+				"RxPackets": int(obj.RxPackets),
+				"TxPackets": int(obj.TxPackets),
+				"RxBytes": int(obj.RxBytes),
+				"TxBytes": int(obj.TxBytes),
+				"RxDropped": int(obj.RxDropped),
+				"TxDropped": int(obj.TxDropped),
+				"RxErrors": int(obj.RxErrors),
+				"TxErrors": int(obj.TxErrors),
+				"RxFrameErr": int(obj.RxFrameErr),
+				"RxOverErr": int(obj.RxOverErr),
+				"RxCrcErr": int(obj.RxCrcErr),
+				"Collisions": int(obj.Collisions),
+				"DurationSec": int(obj.DurationSec),
+				"DurationNSec": int(obj.DurationNSec),
+			}
+			point, err := client.NewPoint(
+				"port_stats",
+				tags,
+				fields,
+				time.Now(),
+			)
+
+			if err != nil {
+				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] NewPoint Error : ", err)
+			}
+			bp.AddPoint(point)
+
+			if err := c.dbClient.Write(bp); err != nil {
+				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] AddPoint Error : ", err)
+			}
+
+
 		}
 	}
 }

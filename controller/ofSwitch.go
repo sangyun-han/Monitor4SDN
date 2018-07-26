@@ -58,9 +58,11 @@ func (sw *OFSwitch) startMonitoring(interval int) {
 	ticker := time.NewTicker(time.Second * time.Duration(interval))
 	defer ticker.Stop()
 	for t := range ticker.C {
-		_ = t
-		msg := ofp13.NewOfpPortStatsRequest(uint32(1), 0)
-		sw.Send(msg)
+		for i:= 1; i < 10; i++ {
+			_ = t
+			msg := ofp13.NewOfpPortStatsRequest(uint32(i), 0)
+			sw.Send(msg)
+		}
 	}
 }
 
