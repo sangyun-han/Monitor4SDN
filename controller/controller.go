@@ -10,16 +10,16 @@ import (
 	"github.com/influxdata/influxdb/client/v2"
 	"time"
 	"encoding/json"
-	"io/ioutil"
 	"strconv"
+	"io/ioutil"
 )
 
 type Configuration struct {
-	tsdb_name        string `json:"tsdb_name"`
-	tsdb_addr        string `json:"tsdb_addr"`
-	username         string `json:"username"`
-	password         string `json:"password"`
-	monitor_interval int32  `json:"monitor_interval"`
+	TsdbName        string `json:"TsdbName"`
+	TsdbAddr        string `json:"TsdbAddr"`
+	Username         string `json:"Username"`
+	Password         string `json:"Password"`
+	MonitorInterval int `json:"MonitorInterval"`
 }
 
 var DEFAULT_PORT = 6653
@@ -46,32 +46,31 @@ type OFController struct {
 }
 
 func NewOFController() *OFController {
-	logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
-	logger.Println("[NewOFController]")
-	ofc := new(OFController)
-	ofc.echoInterval = 60
-	ofc.switchDB = make(map[uint64]*OFSwitch)
+		logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
+		logger.Println("[NewOFController]")
+		ofc := new(OFController)
+		ofc.echoInterval = 60
+		ofc.switchDB = make(map[uint64]*OFSwitch)
 
 	file, err := ioutil.ReadFile("conf.json")
 	if err != nil {
 		logger.Println("File error : ", err)
 	}
-	logger.Println(string(file))
-	config := Configuration{
-
+	var config Configuration
+	json.Unmarshal(file, &config)
+	if err != nil {
+		logger.Fatalln("Error : ", err)
 	}
-	err = json.Unmarshal(file, &config)
 
 	if err != nil {
 		logger.Fatalln("Error : ", err)
 	}
-	logger.Println(config.username)
 
 	// Create a new client
 	c, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:config.tsdb_addr,
-		Username:config.username,
-		Password:config.password,
+		Addr:config.TsdbAddr,
+		Username:config.Username,
+		Password:config.Password,
 	})
 
 	if err != nil {
@@ -80,7 +79,7 @@ func NewOFController() *OFController {
 	//defer c.Close()
 	ofc.dbClient = c
 	ofc.bpConfig = client.BatchPointsConfig{
-		Database:config.tsdb_name,
+		Database:config.TsdbName,
 		Precision: "ns",
 	}
 
