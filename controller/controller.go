@@ -42,7 +42,7 @@ type OFController struct {
 	switchDB     map[uint64]*OFSwitch
 	waitGroup    sync.WaitGroup
 	dbClient client.Client
-	bpConfig client.BatchPointsConfig
+	batchPoint client.BatchPoints
 }
 
 func NewOFController() *OFController {
@@ -67,7 +67,7 @@ func NewOFController() *OFController {
 	}
 
 	// Create a new client
-	c, err := client.NewHTTPClient(client.HTTPConfig{
+	influxClient, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:config.TsdbAddr,
 		Username:config.Username,
 		Password:config.Password,
@@ -77,10 +77,14 @@ func NewOFController() *OFController {
 		logger.Fatal(err)
 	}
 	//defer c.Close()
-	ofc.dbClient = c
-	ofc.bpConfig = client.BatchPointsConfig{
+	ofc.dbClient = influxClient
+	bpConfig := client.BatchPointsConfig{
 		Database:config.TsdbName,
 		Precision: "ns",
+	}
+	ofc.batchPoint, err = client.NewBatchPoints(bpConfig)
+	if err != nil {
+		logger.Fatal(err)
 	}
 
 	return ofc
@@ -147,23 +151,6 @@ func (c *OFController) writePoints(clnt client.Client, bp client.BatchPoints) {
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OFSwitch) {
 	logger.Println("[HandleSwitchFeatures] DPID : ", sw.dpid)
 	c.switchDB[sw.dpid] = sw
-
-	//for i:= 1; i < 10; i++ {
-	//	mp2 := ofp13.NewOfpPortStatsRequest(uint32(i), 0)
-	//	sw.Send(mp2)
-	//}
-
-	//mp3 := ofp13.NewOfpFlowStatsRequest(0, 0, ofp13.OFPP_ANY, ofp13.OFPG_ANY, 0, 0, ofp13.NewOfpMatch())
-	//sw.Send(mp3)
-
-	//mp4 := ofp13.NewOfpFeaturesRequest()
-	//sw.Send(mp4)
-
-	//mp4 := ofp13.NewOfpPortStatus()
-	//sw.Send(mp4)
-
-	//mp3 := ofp13.NewOfpRoleRequest(uint32(0x00000003), uint64(0))
-	//sw.Send(mp3)
 }
 
 func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OFSwitch) {
@@ -189,16 +176,9 @@ func (c *OFController)  HandlePortStatusReply(msg *ofp13.OfpPortStatus, sw *OFSw
 }
 
 func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OFSwitch) {
+	logger.Println("[HandlePortStatsReply][",sw.dpid, "]")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpPortStats); ok {
-			logger.Println("[HandlePortStatsReply][",sw.dpid, "] PortNo : ", obj.PortNo)
-			logger.Println("[HandlePortStatsReply][",sw.dpid, "] RxBytes : ", obj.RxBytes)
-			logger.Println("[HandlePortStatsReply][",sw.dpid, "] TxBytes : ", obj.TxBytes)
-
-			bp, err := client.NewBatchPoints(c.bpConfig)
-			if err != nil {
-				logger.Fatal(err)
-			}
 			tags := map[string]string{
 				"dpid": strconv.FormatUint(sw.dpid, 10),
 				"portNo": strconv.FormatUint(uint64(obj.PortNo), 10),
@@ -229,9 +209,9 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			if err != nil {
 				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] NewPoint Error : ", err)
 			}
-			bp.AddPoint(point)
+			c.batchPoint.AddPoint(point)
 
-			if err := c.dbClient.Write(bp); err != nil {
+			if err := c.dbClient.Write(c.batchPoint); err != nil {
 				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
 
@@ -241,13 +221,13 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 }
 
 func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, sw *OFSwitch) {
-	logger.Println("[HandleAggregateStatsReply]")
-	logger.Println("Handle AggregateStats")
+	logger.Println("[HandleAggregateStatsReply][",sw.dpid, "]")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpAggregateStats); ok {
 			logger.Println("[HandleAggregateStatsReply] PacketCount : ", obj.PacketCount)
 			logger.Println("[HandleAggregateStatsReply] ByteCount : ", obj.ByteCount)
 			logger.Println("[HandleAggregateStatsReply] FlowCount : ", obj.FlowCount)
+
 		}
 	}
 }

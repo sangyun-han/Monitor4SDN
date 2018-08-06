@@ -88,7 +88,6 @@ func (sw *OFSwitch) receiveLoop() {
 }
 
 func (sw *OFSwitch) handlePacket(buf []byte) {
-	fmt.Println("[OFSwitch] handlePacket")
 	// parse data
 	msg := ofp13.Parse(buf[0:])
 
@@ -104,7 +103,6 @@ func (sw *OFSwitch) handlePacket(buf []byte) {
 }
 
 func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
-	fmt.Println("[OFSwitch] dispatchHandler")
 	apps := GetAppManager().GetApplications()
 	for _, app := range apps {
 		switch msgi := msg.(type) {
