@@ -153,18 +153,6 @@ func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OF
 	c.switchDB[sw.dpid] = sw
 }
 
-func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OFSwitch) {
-	logger.Println("[HandleFlowStatsReply]")
-
-	for _, mp := range msg.Body {
-		if obj, ok := mp.(*ofp13.OfpFlowStats); ok {
-			logger.Println("[HandleFlowStatsReply] ByteCount : ", obj.ByteCount)
-			logger.Println("[HandleFlowStatsReply] Instructions : ", obj.Instructions)
-			logger.Println("[HandleFlowStatsReply] Priority : ", obj.Priority)
-		}
-	}
-}
-
 func (c *OFController) HandlwRoleReqply(msg *ofp13.OfpRole, sw *OFSwitch) {
 	logger.Println("[HandlwRoleReqply]")
 	logger.Println("[HandlwRoleReqply] : ", msg.Header, msg.Role, msg.GenerationId)
@@ -228,6 +216,68 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, s
 			logger.Println("[HandleAggregateStatsReply] ByteCount : ", obj.ByteCount)
 			logger.Println("[HandleAggregateStatsReply] FlowCount : ", obj.FlowCount)
 
+			tags := map[string]string {
+				"dpid": strconv.FormatUint(sw.dpid, 10),
+			}
+			fields := map[string]interface{} {
+				"FlowCount": int(obj.FlowCount),
+				"PacketCount": int(obj.PacketCount),
+				"ByteCount": int(obj.ByteCount),
+			}
+
+			point, err := client.NewPoint(
+				"aggregate_stats",
+				tags,
+				fields,
+				time.Now(),
+			)
+			if err != nil {
+				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] NewPoint Error : ", err)
+			}
+			c.batchPoint.AddPoint(point)
+			if err != nil {
+				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] AddPoint Error : ", err)
+			}
+		}
+	}
+}
+
+func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OFSwitch) {
+	logger.Println("[HandleFlowStatsReply][",sw.dpid, "]")
+
+	for _, mp := range msg.Body {
+		if obj, ok := mp.(*ofp13.OfpFlowStats); ok {
+			logger.Println("[HandleFlowStatsReply] ByteCount : ", obj.ByteCount)
+			logger.Println("[HandleFlowStatsReply] Instructions : ", obj.Instructions)
+			logger.Println("[HandleFlowStatsReply] Priority : ", obj.Priority)
+
+			tags := map[string]string {
+				"dpid": strconv.FormatUint(sw.dpid, 10),
+			}
+			fields := map[string]interface{} {
+				"TableID": int(obj.TableId),
+				"Priority": int(obj.Priority),
+				"Cookie": int(obj.Cookie),
+				"PacketCount": int(obj.PacketCount),
+				"ByteCount": int(obj.ByteCount),
+				"DurationSec": int(obj.DurationSec),
+				"IdleTimeout": int(obj.IdleTimeout),
+				"HardTimeout": int(obj.HardTimeout),
+			}
+
+			point, err := client.NewPoint(
+				"flow_stats",
+				tags,
+				fields,
+				time.Now(),
+			)
+			if err != nil {
+				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] NewPoint Error : ", err)
+			}
+			c.batchPoint.AddPoint(point)
+			if err != nil {
+				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] AddPoint Error : ", err)
+			}
 		}
 	}
 }
