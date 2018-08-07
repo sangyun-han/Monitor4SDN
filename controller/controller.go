@@ -41,36 +41,27 @@ type OFController struct {
 	echoInterval int32 // echo interval
 	switchDB     map[uint64]*OFSwitch
 	waitGroup    sync.WaitGroup
-	dbClient client.Client
-	batchPoint client.BatchPoints
+	dbClient     client.Client
+	bpConfig     client.BatchPointsConfig
 }
 
 func NewOFController() *OFController {
-		logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
-		logger.Println("[NewOFController]")
-		ofc := new(OFController)
-		ofc.echoInterval = 60
-		ofc.switchDB = make(map[uint64]*OFSwitch)
+	logger = log.New(os.Stdout, "[INFO][CONTROLLER] ", log.LstdFlags)
+	logger.Println("[NewOFController]")
+	ofc := new(OFController)
+	ofc.echoInterval = 60
+	ofc.switchDB = make(map[uint64]*OFSwitch)
 
-	file, err := ioutil.ReadFile("conf.json")
+	config, err := loadConfig("conf.json")
 	if err != nil {
-		logger.Println("File error : ", err)
-	}
-	var config Configuration
-	json.Unmarshal(file, &config)
-	if err != nil {
-		logger.Fatalln("Error : ", err)
-	}
-
-	if err != nil {
-		logger.Fatalln("Error : ", err)
+		logger.Fatal("failed to load configuration file: ", err)
 	}
 
 	// Create a new client
 	influxClient, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:config.TsdbAddr,
-		Username:config.Username,
-		Password:config.Password,
+		Addr:     config.TsdbAddr,
+		Username: config.Username,
+		Password: config.Password,
 	})
 
 	if err != nil {
@@ -78,13 +69,9 @@ func NewOFController() *OFController {
 	}
 	//defer c.Close()
 	ofc.dbClient = influxClient
-	bpConfig := client.BatchPointsConfig{
-		Database:config.TsdbName,
+	ofc.bpConfig = client.BatchPointsConfig{
+		Database:  config.TsdbName,
 		Precision: "ns",
-	}
-	ofc.batchPoint, err = client.NewBatchPoints(bpConfig)
-	if err != nil {
-		logger.Fatal(err)
 	}
 
 	return ofc
@@ -120,6 +107,18 @@ func Listen(listenPort int) {
 		ofc.waitGroup.Add(1)
 		go ofc.handleConnection(conn)
 	}
+}
+
+func loadConfig(filename string) (Configuration, error) {
+	file, err := ioutil.ReadFile(filename)
+	if err != nil {
+		logger.Println("File error : ", err)
+		return Configuration{}, err
+	}
+	var config Configuration
+	json.Unmarshal(file, &config)
+
+	return config, nil
 }
 
 func (c *OFController) handleConnection(conn *net.TCPConn) {
@@ -197,9 +196,13 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			if err != nil {
 				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] NewPoint Error : ", err)
 			}
-			c.batchPoint.AddPoint(point)
+			bp, err := client.NewBatchPoints(c.bpConfig)
+			if err != nil {
+				logger.Fatal(err)
+			}
+			bp.AddPoint(point)
 
-			if err := c.dbClient.Write(c.batchPoint); err != nil {
+			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
 
@@ -234,8 +237,13 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, s
 			if err != nil {
 				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] NewPoint Error : ", err)
 			}
-			c.batchPoint.AddPoint(point)
+			bp, err := client.NewBatchPoints(c.bpConfig)
 			if err != nil {
+				logger.Fatal(err)
+			}
+			bp.AddPoint(point)
+
+			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
 		}
@@ -274,8 +282,13 @@ func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			if err != nil {
 				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] NewPoint Error : ", err)
 			}
-			c.batchPoint.AddPoint(point)
+			bp, err := client.NewBatchPoints(c.bpConfig)
 			if err != nil {
+				logger.Fatal(err)
+			}
+			bp.AddPoint(point)
+
+			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
 		}

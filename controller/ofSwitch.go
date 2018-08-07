@@ -36,22 +36,6 @@ func (sw *OFSwitch) switchConnected() {
 
 }
 
-//func (sw *OFSwitch) sendLoop() {
-//	fmt.Println("[OFSwitch] sendLoop")
-//	for {
-//		// wait channel
-//		msg := <-(sw.sendBuffer)
-//		// serialize data
-//		byteData := (*msg).Serialize()
-//		_, err := sw.conn.Write(byteData)
-//		if err != nil {
-//			fmt.Println("failed to write conn")
-//			fmt.Println(err)
-//			return
-//		}
-//	}
-//}
-
 func (sw *OFSwitch) startMonitoring(interval int) {
 	fmt.Println("[OFSwitch] startMonitoring")
 
@@ -70,7 +54,6 @@ func (sw *OFSwitch) receiveLoop() {
 	fmt.Println("[OFSwitch] receiveLoop")
 	buf := make([]byte, 1024*64)
 	for {
-		// read
 		size, err := sw.conn.Read(buf)
 		if err != nil {
 			fmt.Println("failed to read conn")
@@ -78,7 +61,6 @@ func (sw *OFSwitch) receiveLoop() {
 			return
 		}
 
-		// tmp := make([]byte, 2048)
 		for i := 0; i < size; {
 			msgLen := binary.BigEndian.Uint16(buf[i+2:])
 			sw.handlePacket(buf[i : i+(int)(msgLen)])
