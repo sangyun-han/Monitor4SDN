@@ -46,6 +46,13 @@ func (sw *OFSwitch) startMonitoring(interval int) {
 			_ = t
 			msg := ofp13.NewOfpPortStatsRequest(uint32(i), 0)
 			sw.Send(msg)
+
+			// TODO : will be added AggregateStatsRequest
+			// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
+
+			// TODO : will be added FlowStatsRequest
+			// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
+
 		}
 	}
 }
