@@ -42,18 +42,33 @@ func (sw *OFSwitch) startMonitoring(interval int) {
 	ticker := time.NewTicker(time.Second * time.Duration(interval))
 	defer ticker.Stop()
 	for t := range ticker.C {
-		for i:= 1; i < 10; i++ {
-			_ = t
-			msg := ofp13.NewOfpPortStatsRequest(uint32(i), 0)
-			sw.Send(msg)
+		_ = t
+		portStatsReq := ofp13.NewOfpPortStatsRequest(ofp13.OFPP_ANY, 0)
+		sw.Send(portStatsReq)
 
-			// TODO : will be added AggregateStatsRequest
-			// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
+		// TODO : will be added AggregateStatsRequest
+		// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
+		aggregateStatsReq := ofp13.NewOfpAggregateStatsRequest(
+			ofp13.OFPMPF_REQ_MORE,
+			ofp13.OFPTT_ALL,
+			ofp13.OFPP_ANY,
+			ofp13.OFPG_ANY,
+			0,
+			0,
+			ofp13.NewOfpMatch())
+		sw.Send(aggregateStatsReq)
 
-			// TODO : will be added FlowStatsRequest
-			// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
-
-		}
+		// TODO : will be added FlowStatsRequest
+		// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
+		flowStatsReq := ofp13.NewOfpFlowStatsRequest(
+			ofp13.OFPMPF_REQ_MORE,
+			ofp13.OFPTT_ALL,
+			ofp13.OFPP_ANY,
+			ofp13.OFPG_ANY,
+			0,
+			0,
+			ofp13.NewOfpMatch())
+		sw.Send(flowStatsReq)
 	}
 }
 
