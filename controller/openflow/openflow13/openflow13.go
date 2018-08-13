@@ -4,6 +4,11 @@ import (
 	"net"
 )
 
+/*
+Version number
+OpenFlow versions released: 0x01 = 1.0; 0x02 = 1.1; 0x03 = 1.2; 0x04 = 1.3
+*/
+
 type OFMessage interface {
 	Serialize() []byte
 	Parse(packet []byte)
@@ -18,8 +23,12 @@ const OFP_MAX_TABLE_NAME_LEN = 32
 const OFP_MAX_PORT_NAME_LEN = 16
 const OFP_ETH_ALEN = 6
 
+/* Port numbering. Ports are numbered starting from 1. */
 const (
+	/* Maximum number of physical and logical switch ports */
 	OFPP_MAX        = 0xffffff00
+
+	/* Reserved OpenFlow Port (fake output "ports") */
 	OFPP_IN_PORT    = 0xfffffff8
 	OFPP_TABLE      = 0xfffffff9
 	OFPP_NORMAL     = 0xfffffffa
@@ -63,11 +72,14 @@ const (
 	OFPT_METER_MOD
 )
 
+
 const (
 	OFPHET_VERSIONBITMAP = 1
 )
 
+// ofp_conjfig_flags
 const (
+	/* Handling of IP fragments. */
 	OFPC_FLAG_NORMAL = 0
 	OFPC_FLAG_DROP   = 1 << 0
 	OFPC_FLAG_REASM  = 1 << 1
@@ -83,6 +95,7 @@ const (
 	OFPTT_ALL = 0xff
 )
 
+// ofp_capabilities
 const (
 	OFPC_FLOW_STATS   = 1 << 0
 	OFPC_TABLE_STATS  = 1 << 1
@@ -93,6 +106,7 @@ const (
 	OFPC_PORT_BLOCKED = 1 << 8
 )
 
+// ofp_port_config
 const (
 	OFPPC_PORT_DOWN    = 1 << 0
 	OFPPC_NO_RECV      = 1 << 2
@@ -100,12 +114,14 @@ const (
 	OFPPC_NO_PACKET_IN = 1 << 6
 )
 
+// ofp_port_state
 const (
 	OFPPS_LINK_DOWN = 1 << 0
 	OFPPS_BLOCKED   = 1 << 1
 	OFPPS_LIVE      = 1 << 2
 )
 
+// ofp_port_features
 const (
 	OFPPF_10MB_HD  = 1 << 0
 	OFPPF_10MB_FD  = 1 << 1
@@ -1358,18 +1374,18 @@ type OfpMultipartBody interface {
 
 type OfpMultipartRequest struct {
 	Header OfpHeader
-	Type   uint16
-	Flags  uint16
+	Type   uint16			/* One of the OFPMP_* constants. */
+	Flags  uint16			/* OFPMPF_REQ_* flags. */
 	// Pad    [4]uint8
-	Body OfpMultipartBody
+	Body OfpMultipartBody	/* Body of the request. 0 or more bytes. */
 }
 
 type OfpMultipartReply struct {
 	Header OfpHeader
-	Type   uint16
-	Flags  uint16
+	Type   uint16			/* One of the OFPMP_* constants. */
+	Flags  uint16			/* OFPMPF_REPLY_* flags. */
 	// Pad    [4]uint8
-	Body []OfpMultipartBody
+	Body []OfpMultipartBody	/* Body of the reply. 0 or more bytes */
 }
 
 type OfpDescStats struct {
