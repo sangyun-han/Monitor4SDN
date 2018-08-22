@@ -49,7 +49,7 @@ func (sw *OFSwitch) startMonitoring(interval int) {
 		// TODO : will be added AggregateStatsRequest
 		// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
 		aggregateStatsReq := ofp13.NewOfpAggregateStatsRequest(
-			ofp13.OFPMPF_REQ_MORE,
+			0,
 			ofp13.OFPTT_ALL,
 			ofp13.OFPP_ANY,
 			ofp13.OFPG_ANY,
@@ -61,7 +61,7 @@ func (sw *OFSwitch) startMonitoring(interval int) {
 		// TODO : will be added FlowStatsRequest
 		// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
 		flowStatsReq := ofp13.NewOfpFlowStatsRequest(
-			ofp13.OFPMPF_REQ_MORE,
+			0,
 			ofp13.OFPTT_ALL,
 			ofp13.OFPP_ANY,
 			ofp13.OFPG_ANY,
