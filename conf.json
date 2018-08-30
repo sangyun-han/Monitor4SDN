@@ -1,0 +1,7 @@
+{
+  "TsdbName" : "sdn",
+  "TsdbAddr" : "http://192.168.109.140:8086",
+  "Username" : "monitor",
+  "Password" : "password",
+  "MonitorInterval" : 1
+}
