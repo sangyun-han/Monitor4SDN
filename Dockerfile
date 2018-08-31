@@ -1,9 +1,16 @@
-FROM sangyunhan/ubuntu-for-network-test
+FROM golang:1.10
 MAINTAINER Sangyun Han <sangyun628@gmail.com>
 
 # setup golang
-RUN add-apt-repository ppa:gophers/archive
 RUN apt-get update
-RUN apt-get install golang-1.10-go -y
+RUN apt-get install vim -y
+RUN go get github.com/sangyun-han/monitor4sdn
 
-# setup controller
+# Ports
+# 6653 - OpenFlow
+# 8086 - InfluxDB
+EXPOSE 6653 8086
+
+WORKDIR /go/src/github.com/sangyun-han/monitor4sdn
+ADD /go/src/github.com/sangyun-han/monitor4sdn/conf.json /go/bin
+ENTRYPOINT  ["go", "run", "main.go"]
