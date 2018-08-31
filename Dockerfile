@@ -11,6 +11,6 @@ RUN go get github.com/sangyun-han/monitor4sdn
 # 8086 - InfluxDB
 EXPOSE 6653 8086
 
+ADD /go/src/github.com/sangyun-han/monitor4sdn/conf.json /go/bin
 WORKDIR /go/src/github.com/sangyun-han/monitor4sdn
-ADD WORKDIR/conf.json /go/bin
 ENTRYPOINT  ["go", "run", "main.go"]
