@@ -12,5 +12,5 @@ RUN go get github.com/sangyun-han/monitor4sdn
 EXPOSE 6653 8086
 
 WORKDIR /go/src/github.com/sangyun-han/monitor4sdn
-ADD /go/src/github.com/sangyun-han/monitor4sdn/conf.json /go/bin
+ADD WORKDIR/conf.json /go/bin
 ENTRYPOINT  ["go", "run", "main.go"]
