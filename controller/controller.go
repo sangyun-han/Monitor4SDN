@@ -300,7 +300,7 @@ func (c *OFController) HandleHello(msg *ofp13.OfpHello, sw *OFSwitch) {
 }
 
 func (c *OFController) HandleEchoRequest(msg *ofp13.OfpHeader, sw *OFSwitch) {
-	logger.Println("[controller][HER]recv EchoReq")
+	logger.Println("[controller] recv EchoReq")
 	// send EchoReply
 	echo := ofp13.NewOfpEchoReply()
 	(*sw).Send(echo)

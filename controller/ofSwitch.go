@@ -245,14 +245,9 @@ func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
 	}
 }
 
-/**
- *
- */
 func (sw *OFSwitch) Send(message ofp13.OFMessage) bool {
-	fmt.Println("[OFSwitch] Send")
 	// push data
 	//(sw.sendBuffer) <- &message
-
 	byteData := message.Serialize()
 	_, err := sw.conn.Write(byteData)
 	if err != nil {
