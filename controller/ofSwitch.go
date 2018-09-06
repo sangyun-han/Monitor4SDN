@@ -36,7 +36,7 @@ func (sw *OFSwitch) switchConnected() {
 
 }
 
-func (sw *OFSwitch) startMonitoring(interval int) {
+func (sw *OFSwitch) monitorLoop(interval int) {
 	fmt.Println("[OFSwitch] startMonitoring")
 
 	ticker := time.NewTicker(time.Second * time.Duration(interval))

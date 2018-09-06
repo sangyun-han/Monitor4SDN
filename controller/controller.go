@@ -37,12 +37,13 @@ type AppInterface interface {
  * basic controller
  */
 type OFController struct {
-	app          AppInterface
-	echoInterval int32 // echo interval
-	switchDB     map[uint64]*OFSwitch
-	waitGroup    sync.WaitGroup
-	dbClient     client.Client
-	bpConfig     client.BatchPointsConfig
+	app             AppInterface
+	echoInterval    int32 // echo interval
+	switchDB        map[uint64]*OFSwitch
+	waitGroup       sync.WaitGroup
+	dbClient        client.Client
+	bpConfig        client.BatchPointsConfig
+	monitorInterval int
 }
 
 func NewOFController() *OFController {
@@ -57,6 +58,8 @@ func NewOFController() *OFController {
 		logger.Fatal("failed to load configuration file: ", err)
 	}
 
+	ofc.monitorInterval = config.MonitorInterval
+
 	// Create a new client
 	influxClient, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     config.TsdbAddr,
@@ -65,7 +68,7 @@ func NewOFController() *OFController {
 	})
 
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal("[NewOFController][InfluxClient] ", err)
 	}
 	//defer c.Close()
 	ofc.dbClient = influxClient
@@ -75,6 +78,18 @@ func NewOFController() *OFController {
 	}
 
 	return ofc
+}
+
+func loadConfig(filename string) (Configuration, error) {
+	file, err := ioutil.ReadFile(filename)
+	if err != nil {
+		logger.Println("File error : ", err)
+		return Configuration{}, err
+	}
+	var config Configuration
+	json.Unmarshal(file, &config)
+
+	return config, nil
 }
 
 func Listen(listenPort int) {
@@ -109,18 +124,6 @@ func Listen(listenPort int) {
 	}
 }
 
-func loadConfig(filename string) (Configuration, error) {
-	file, err := ioutil.ReadFile(filename)
-	if err != nil {
-		logger.Println("File error : ", err)
-		return Configuration{}, err
-	}
-	var config Configuration
-	json.Unmarshal(file, &config)
-
-	return config, nil
-}
-
 func (c *OFController) handleConnection(conn *net.TCPConn) {
 	logger.Println("[handleConnection]")
 
@@ -138,13 +141,7 @@ func (c *OFController) handleConnection(conn *net.TCPConn) {
 
 	// launch goroutine
 	go sw.receiveLoop()
-	go sw.startMonitoring(1)
-
-	// TODO add monitoring loop
-}
-
-func (c *OFController) writePoints(clnt client.Client, bp client.BatchPoints) {
-
+	go sw.monitorLoop(c.monitorInterval)
 }
 
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OFSwitch) {
