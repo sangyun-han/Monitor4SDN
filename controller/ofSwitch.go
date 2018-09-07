@@ -45,8 +45,7 @@ func (sw *OFSwitch) monitorLoop(interval int) {
 		_ = t
 		portStatsReq := ofp13.NewOfpPortStatsRequest(ofp13.OFPP_ANY, 0)
 		sw.Send(portStatsReq)
-
-		// TODO : will be added AggregateStatsRequest
+		
 		// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
 		aggregateStatsReq := ofp13.NewOfpAggregateStatsRequest(
 			0,
@@ -58,7 +57,6 @@ func (sw *OFSwitch) monitorLoop(interval int) {
 			ofp13.NewOfpMatch())
 		sw.Send(aggregateStatsReq)
 
-		// TODO : will be added FlowStatsRequest
 		// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
 		flowStatsReq := ofp13.NewOfpFlowStatsRequest(
 			0,
@@ -74,8 +72,8 @@ func (sw *OFSwitch) monitorLoop(interval int) {
 
 func (sw *OFSwitch) receiveLoop() {
 	fmt.Println("[OFSwitch] receiveLoop")
-	buf := make([]byte, 1024*64)
 	for {
+		buf := make([]byte, 1024*64)
 		size, err := sw.conn.Read(buf)
 		if err != nil {
 			fmt.Println("failed to read conn")
@@ -85,8 +83,8 @@ func (sw *OFSwitch) receiveLoop() {
 
 		for i := 0; i < size; {
 			msgLen := binary.BigEndian.Uint16(buf[i+2:])
-			sw.handlePacket(buf[i : i+(int)(msgLen)])
-			i += (int)(msgLen)
+			sw.handlePacket(buf[i : i + int(msgLen)])
+			i += int(msgLen)
 		}
 	}
 }
