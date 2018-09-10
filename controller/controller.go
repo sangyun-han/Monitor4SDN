@@ -61,10 +61,9 @@ func NewOFController() *OFController {
 	ofc.monitorInterval = config.MonitorInterval
 
 	// Create a new client
-	influxClient, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:     config.TsdbAddr,
-		Username: config.Username,
-		Password: config.Password,
+	influxClient, err := client.NewUDPClient(client.UDPConfig{
+		Addr: config.TsdbAddr,
+		PayloadSize:65536,
 	})
 
 	if err != nil {
@@ -200,10 +199,8 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			bp.AddPoint(point)
 
 			if err := c.dbClient.Write(bp); err != nil {
-				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] AddPoint Error : ", err)
+				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] WritePoint Error : ", err)
 			}
-
-
 		}
 	}
 }
