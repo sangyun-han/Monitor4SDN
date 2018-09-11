@@ -7,10 +7,8 @@ import (
 	"log"
 	"os"
 	"sync"
-	"github.com/influxdata/influxdb/client/v2"
-	"time"
+
 	"encoding/json"
-	"strconv"
 	"io/ioutil"
 )
 
@@ -30,10 +28,7 @@ type OFController struct {
 	echoInterval    int32 // echo interval
 	switchDB        map[uint64]*OFSwitch
 	waitGroup       sync.WaitGroup
-	dbClient        client.Client
-	bpConfig        client.BatchPointsConfig
 	monitorInterval int
-	mutex           sync.Mutex
 }
 
 var DEFAULT_PORT = 6653
@@ -62,20 +57,13 @@ func NewOFController() *OFController {
 	ofc.monitorInterval = config.MonitorInterval
 
 	// Create a new client
-	influxClient, err := client.NewUDPClient(client.UDPConfig{
-		Addr: config.TsdbAddr,
-		PayloadSize:65536,
-	})
+
 
 	if err != nil {
 		logger.Fatal("[NewOFController][InfluxClient] ", err)
 	}
 	//defer c.Close()
-	ofc.dbClient = influxClient
-	ofc.bpConfig = client.BatchPointsConfig{
-		Database:  config.TsdbName,
-		Precision: "ns",
-	}
+
 
 	return ofc
 }
@@ -163,47 +151,8 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 	logger.Println("[HandlePortStatsReply][",sw.dpid, "]")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpPortStats); ok {
-			tags := map[string]string{
-				"dpid": strconv.FormatUint(sw.dpid, 10),
-				"portNo": strconv.FormatUint(uint64(obj.PortNo), 10),
-			}
-			fields := map[string]interface{} {
-				"RxPackets": int(obj.RxPackets),
-				"TxPackets": int(obj.TxPackets),
-				"RxBytes": int(obj.RxBytes),
-				"TxBytes": int(obj.TxBytes),
-				"RxDropped": int(obj.RxDropped),
-				"TxDropped": int(obj.TxDropped),
-				"RxErrors": int(obj.RxErrors),
-				"TxErrors": int(obj.TxErrors),
-				"RxFrameErr": int(obj.RxFrameErr),
-				"RxOverErr": int(obj.RxOverErr),
-				"RxCrcErr": int(obj.RxCrcErr),
-				"Collisions": int(obj.Collisions),
-				"DurationSec": int(obj.DurationSec),
-				"DurationNSec": int(obj.DurationNSec),
-			}
-			point, err := client.NewPoint(
-				"port_stats",
-				tags,
-				fields,
-				time.Now(),
-			)
-
-			if err != nil {
-				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] NewPoint Error : ", err)
-			}
-			bp, err := client.NewBatchPoints(c.bpConfig)
-			if err != nil {
-				logger.Fatal(err)
-			}
-			bp.AddPoint(point)
-
-			c.mutex.Lock()
-			if err := c.dbClient.Write(bp); err != nil {
-				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] WritePoint Error : ", err)
-			}
-			c.mutex.Unlock()
+			logger.Println("[HandlePortStatsReply][",sw.dpid, "] TxBytes", obj.TxBytes)
+			logger.Println("[HandlePortStatsReply][",sw.dpid, "] TxBytes", obj.RxBytes)
 		}
 	}
 }
@@ -212,39 +161,10 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, s
 	logger.Println("[HandleAggregateStatsReply][",sw.dpid, "]")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpAggregateStats); ok {
-			logger.Println("[HandleAggregateStatsReply] PacketCount : ", obj.PacketCount)
-			logger.Println("[HandleAggregateStatsReply] ByteCount : ", obj.ByteCount)
-			logger.Println("[HandleAggregateStatsReply] FlowCount : ", obj.FlowCount)
+			logger.Println("[HandleAggregateStatsReply][", sw.dpid, "] PacketCount : ", obj.PacketCount)
+			logger.Println("[HandleAggregateStatsReply][", sw.dpid, "] ByteCount : ", obj.ByteCount)
+			logger.Println("[HandleAggregateStatsReply][", sw.dpid, "] FlowCount : ", obj.FlowCount)
 
-			tags := map[string]string {
-				"dpid": strconv.FormatUint(sw.dpid, 10),
-			}
-			fields := map[string]interface{} {
-				"FlowCount": int(obj.FlowCount),
-				"PacketCount": int(obj.PacketCount),
-				"ByteCount": int(obj.ByteCount),
-			}
-
-			point, err := client.NewPoint(
-				"aggregate_stats",
-				tags,
-				fields,
-				time.Now(),
-			)
-			if err != nil {
-				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] NewPoint Error : ", err)
-			}
-			bp, err := client.NewBatchPoints(c.bpConfig)
-			if err != nil {
-				logger.Fatal(err)
-			}
-			bp.AddPoint(point)
-
-			c.mutex.Lock()
-			if err := c.dbClient.Write(bp); err != nil {
-				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] AddPoint Error : ", err)
-			}
-			c.mutex.Unlock()
 		}
 	}
 }
@@ -257,41 +177,6 @@ func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			logger.Println("[HandleFlowStatsReply] ByteCount : ", obj.ByteCount)
 			logger.Println("[HandleFlowStatsReply] Instructions : ", obj.Instructions)
 			logger.Println("[HandleFlowStatsReply] Priority : ", obj.Priority)
-
-			tags := map[string]string {
-				"dpid": strconv.FormatUint(sw.dpid, 10),
-			}
-			fields := map[string]interface{} {
-				"TableID": int(obj.TableId),
-				"Priority": int(obj.Priority),
-				"Cookie": int(obj.Cookie),
-				"PacketCount": int(obj.PacketCount),
-				"ByteCount": int(obj.ByteCount),
-				"DurationSec": int(obj.DurationSec),
-				"IdleTimeout": int(obj.IdleTimeout),
-				"HardTimeout": int(obj.HardTimeout),
-			}
-
-			point, err := client.NewPoint(
-				"flow_stats",
-				tags,
-				fields,
-				time.Now(),
-			)
-			if err != nil {
-				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] NewPoint Error : ", err)
-			}
-			bp, err := client.NewBatchPoints(c.bpConfig)
-			if err != nil {
-				logger.Fatal(err)
-			}
-			bp.AddPoint(point)
-
-			c.mutex.Lock()
-			if err := c.dbClient.Write(bp); err != nil {
-				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] AddPoint Error : ", err)
-			}
-			c.mutex.Unlock()
 		}
 	}
 }
