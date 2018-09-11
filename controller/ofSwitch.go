@@ -43,6 +43,7 @@ func (sw *OFSwitch) monitorLoop(interval int) {
 	defer ticker.Stop()
 	for t := range ticker.C {
 		_ = t
+
 		portStatsReq := ofp13.NewOfpPortStatsRequest(ofp13.OFPP_ANY, 0)
 		sw.Send(portStatsReq)
 		

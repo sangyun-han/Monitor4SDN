@@ -22,17 +22,6 @@ type Configuration struct {
 	MonitorInterval int `json:"MonitorInterval"`
 }
 
-var DEFAULT_PORT = 6653
-var logger *log.Logger
-
-type AppInterface interface {
-	// A switch connected to the SDN controller
-	SwitchConnected(sw *OFSwitch)
-
-	// Switch disconnected from the SDN controller
-	SwitchDisconnected(sw *OFSwitch)
-}
-
 /**
  * basic controller
  */
@@ -44,6 +33,18 @@ type OFController struct {
 	dbClient        client.Client
 	bpConfig        client.BatchPointsConfig
 	monitorInterval int
+	mutex           sync.Mutex
+}
+
+var DEFAULT_PORT = 6653
+var logger *log.Logger
+
+type AppInterface interface {
+	// A switch connected to the SDN controller
+	SwitchConnected(sw *OFSwitch)
+
+	// Switch disconnected from the SDN controller
+	SwitchDisconnected(sw *OFSwitch)
 }
 
 func NewOFController() *OFController {
@@ -198,9 +199,11 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			}
 			bp.AddPoint(point)
 
+			c.mutex.Lock()
 			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] WritePoint Error : ", err)
 			}
+			c.mutex.Unlock()
 		}
 	}
 }
@@ -237,9 +240,11 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, s
 			}
 			bp.AddPoint(point)
 
+			c.mutex.Lock()
 			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
+			c.mutex.Unlock()
 		}
 	}
 }
@@ -282,14 +287,16 @@ func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			}
 			bp.AddPoint(point)
 
+			c.mutex.Lock()
 			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
+			c.mutex.Unlock()
 		}
 	}
 }
 
-func (c *OFController) HandleHello(msg *ofp13.OfpHello, sw *OFSwitch) {
+func (c *OFController) HandleHelloMsg(msg *ofp13.OfpHello, sw *OFSwitch) {
 	logger.Println("recv Hello")
 	// send feature request
 	featureReq := ofp13.NewOfpFeaturesRequest()
@@ -301,4 +308,8 @@ func (c *OFController) HandleEchoRequest(msg *ofp13.OfpHeader, sw *OFSwitch) {
 	// send EchoReply
 	echo := ofp13.NewOfpEchoReply()
 	(*sw).Send(echo)
+}
+
+func (c *OFController) HandleEchoReply(msg *ofp13.OfpHeader, sw *OFSwitch) {
+	logger.Println("[controller] recv Echo Reply")
 }
