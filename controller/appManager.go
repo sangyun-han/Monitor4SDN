@@ -1,4 +1,4 @@
-package gosdncon
+package monitor4sdn
 
 type IFMap map[string]interface{}
 

@@ -1,4 +1,4 @@
-package gosdncon
+package monitor4sdn
 
 import (
 	ofp13 "github.com/sangyun-han/monitor4sdn/controller/openflow/openflow13"
