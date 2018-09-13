@@ -64,7 +64,7 @@ func NewOFController() *OFController {
 	// Create a new client
 	influxClient, err := client.NewUDPClient(client.UDPConfig{
 		Addr: config.TsdbAddr,
-		PayloadSize:65536,
+		PayloadSize:0,
 	})
 
 	if err != nil {
