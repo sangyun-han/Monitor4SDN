@@ -33,7 +33,6 @@ type OFController struct {
 	dbClient        client.Client
 	bpConfig        client.BatchPointsConfig
 	monitorInterval int
-	mutex           sync.Mutex
 }
 
 var DEFAULT_PORT = 6653
@@ -199,11 +198,9 @@ func (c *OFController) HandlePortStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			}
 			bp.AddPoint(point)
 
-			c.mutex.Lock()
 			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandlePortStatsReply][",sw.dpid, "] WritePoint Error : ", err)
 			}
-			c.mutex.Unlock()
 		}
 	}
 }
@@ -240,11 +237,9 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, s
 			}
 			bp.AddPoint(point)
 
-			c.mutex.Lock()
 			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandleAggregateStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
-			c.mutex.Unlock()
 		}
 	}
 }
@@ -287,11 +282,9 @@ func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 			}
 			bp.AddPoint(point)
 
-			c.mutex.Lock()
 			if err := c.dbClient.Write(bp); err != nil {
 				logger.Fatal("[HandleFlowStatsReply][",sw.dpid, "] AddPoint Error : ", err)
 			}
-			c.mutex.Unlock()
 		}
 	}
 }
