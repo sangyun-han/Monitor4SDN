@@ -139,7 +139,7 @@ func (c *OFController) handleConnection(conn *net.TCPConn) {
 	sw := NewSwitch(conn)
 
 	// launch goroutine
-	go sw.receiveLoop()
+	go receiveLoop(sw)
 	go sw.monitorLoop(c.monitorInterval)
 }
 

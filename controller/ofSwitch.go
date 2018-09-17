@@ -71,7 +71,7 @@ func (sw *OFSwitch) monitorLoop(interval int) {
 	}
 }
 
-func (sw *OFSwitch) receiveLoop() {
+func receiveLoop(sw *OFSwitch) {
 	fmt.Println("[OFSwitch] receiveLoop")
 	for {
 		buf := make([]byte, 1024*64)
@@ -84,13 +84,13 @@ func (sw *OFSwitch) receiveLoop() {
 
 		for i := 0; i < size; {
 			msgLen := binary.BigEndian.Uint16(buf[i+2:])
-			sw.handlePacket(buf[i : i + int(msgLen)])
+			handlePacket(buf[i : i + int(msgLen)], sw)
 			i += int(msgLen)
 		}
 	}
 }
 
-func (sw *OFSwitch) handlePacket(buf []byte) {
+func handlePacket(buf []byte, sw *OFSwitch) {
 	// parse data
 	msg := ofp13.Parse(buf[0:])
 
@@ -101,11 +101,11 @@ func (sw *OFSwitch) handlePacket(buf []byte) {
 		sw.Send(featureReq)
 	} else {
 		// dispatch handler
-		sw.dispatchHandler(msg)
+		dispatchHandler(msg, sw)
 	}
 }
 
-func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
+func dispatchHandler(msg ofp13.OFMessage, sw *OFSwitch) {
 	apps := GetAppManager().GetApplications()
 	for _, app := range apps {
 		switch msgi := msg.(type) {
