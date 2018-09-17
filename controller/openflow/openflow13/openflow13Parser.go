@@ -4776,14 +4776,8 @@ func NewOfpDescStatsRequest(flags uint16) *OfpMultipartRequest {
 	return m
 }
 
-func NewOfpFlowStatsRequest(
-	flags uint16,
-	tableId uint8,
-	outPort uint32,
-	outGroup uint32,
-	cookie uint64,
-	cookieMask uint64,
-	match *OfpMatch) *OfpMultipartRequest {
+func NewOfpFlowStatsRequest(flags uint16, tableId uint8, outPort uint32, outGroup uint32, cookie uint64,
+	cookieMask uint64, match *OfpMatch) *OfpMultipartRequest {
 	m := NewOfpMultipartRequest(OFPMP_FLOW, flags)
 	m.Body = newOfpFlowStatsRequestBody(
 		tableId,
@@ -4796,14 +4790,8 @@ func NewOfpFlowStatsRequest(
 	return m
 }
 
-func NewOfpAggregateStatsRequest(
-	flags uint16,
-	tableId uint8,
-	outPort uint32,
-	outGroup uint32,
-	cookie uint64,
-	cookieMask uint64,
-	match *OfpMatch) *OfpMultipartRequest {
+func NewOfpAggregateStatsRequest(flags uint16, tableId uint8, outPort uint32, outGroup uint32, cookie uint64,
+	cookieMask uint64, match *OfpMatch) *OfpMultipartRequest {
 	m := NewOfpMultipartRequest(OFPMP_AGGREGATE, flags)
 	m.Body = newOfpAggregateStatsRequestBody(
 		tableId,
