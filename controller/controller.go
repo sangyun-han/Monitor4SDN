@@ -209,10 +209,6 @@ func (c *OFController) HandleAggregateStatsReply(msg *ofp13.OfpMultipartReply, s
 	logger.Println("[HandleAggregateStatsReply][",sw.dpid, "]")
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpAggregateStats); ok {
-			logger.Println("[HandleAggregateStatsReply] PacketCount : ", obj.PacketCount)
-			logger.Println("[HandleAggregateStatsReply] ByteCount : ", obj.ByteCount)
-			logger.Println("[HandleAggregateStatsReply] FlowCount : ", obj.FlowCount)
-
 			tags := map[string]string {
 				"dpid": strconv.FormatUint(sw.dpid, 10),
 			}
@@ -249,15 +245,12 @@ func (c *OFController) HandleFlowStatsReply(msg *ofp13.OfpMultipartReply, sw *OF
 
 	for _, mp := range msg.Body {
 		if obj, ok := mp.(*ofp13.OfpFlowStats); ok {
-			logger.Println("[HandleFlowStatsReply] ByteCount : ", obj.ByteCount)
-			logger.Println("[HandleFlowStatsReply] Instructions : ", obj.Instructions)
-			logger.Println("[HandleFlowStatsReply] Priority : ", obj.Priority)
 
 			tags := map[string]string {
 				"dpid": strconv.FormatUint(sw.dpid, 10),
+				"TableID": string(obj.TableId),
 			}
 			fields := map[string]interface{} {
-				"TableID": int(obj.TableId),
 				"Priority": int(obj.Priority),
 				"Cookie": int(obj.Cookie),
 				"PacketCount": int(obj.PacketCount),
