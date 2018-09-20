@@ -33,6 +33,7 @@ type OFController struct {
 	dbClient        client.Client
 	bpConfig        client.BatchPointsConfig
 	monitorInterval int
+	mtx				sync.RWMutex
 }
 
 var DEFAULT_PORT = 6653
@@ -145,7 +146,9 @@ func (c *OFController) handleConnection(conn *net.TCPConn) {
 
 func (c *OFController) HandleSwitchFeatures(msg *ofp13.OfpSwitchFeatures, sw *OFSwitch) {
 	logger.Println("[HandleSwitchFeatures] DPID : ", sw.dpid)
+	c.mtx.Lock()
 	c.switchDB[sw.dpid] = sw
+	c.mtx.Unlock()
 }
 
 func (c *OFController) HandlwRoleReqply(msg *ofp13.OfpRole, sw *OFSwitch) {
