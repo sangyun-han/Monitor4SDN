@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"sync/atomic"
+	"runtime"
 )
 
 func Parse(packet []byte) (msg OFMessage) {
@@ -58,8 +60,11 @@ func Parse(packet []byte) (msg OFMessage) {
 var xid uint32 = 0
 
 func nextXid() uint32 {
-	tmp := xid
-	xid += 1
+	//tmp := xid
+	//xid += 1
+	tmp := atomic.LoadUint32(&xid)
+	atomic.AddUint32(&xid, 1)
+	runtime.Gosched()
 	return tmp
 }
 
