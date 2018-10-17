@@ -6,8 +6,6 @@ import (
 	"os"
 )
 
-
-
 var logger *log.Logger
 
 func main() {

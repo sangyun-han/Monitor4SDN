@@ -7,6 +7,7 @@ import (
 	"net"
 	ofp13 "github.com/sangyun-han/monitor4sdn/controller/openflow/openflow13"
 	"time"
+	"sync"
 )
 
 // OFSwitch
@@ -92,6 +93,8 @@ func (sw *OFSwitch) receiveLoop() {
 
 func (sw *OFSwitch) handlePacket(buf []byte) {
 	// parse data
+	var mtx sync.Mutex
+	mtx.Lock()
 	msg := ofp13.Parse(buf[0:])
 
 	if _, ok := msg.(*ofp13.OfpHello); ok {
@@ -103,9 +106,14 @@ func (sw *OFSwitch) handlePacket(buf []byte) {
 		// dispatch handler
 		sw.dispatchHandler(msg)
 	}
+	mtx.Unlock()
 }
 
 func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
+	var mtx sync.Mutex
+
+	mtx.Lock()
+
 	apps := GetAppManager().GetApplications()
 	for _, app := range apps {
 		switch msgi := msg.(type) {
@@ -242,6 +250,7 @@ func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
 			fmt.Println("UnSupport Message")
 		}
 	}
+	mtx.Unlock()
 }
 
 func (sw *OFSwitch) Send(message ofp13.OFMessage) bool {
