@@ -59,15 +59,15 @@ func (sw *OFSwitch) monitorLoop(interval int) {
 		sw.Send(aggregateStatsReq)
 
 		// OFPTT_ALL, OFPP_ANY, OFPG_ANY, mask=0
-		flowStatsReq := ofp13.NewOfpFlowStatsRequest(
-			0,
-			ofp13.OFPTT_ALL,
-			ofp13.OFPP_ANY,
-			ofp13.OFPG_ANY,
-			0,
-			0,
-			ofp13.NewOfpMatch())
-		sw.Send(flowStatsReq)
+		//flowStatsReq := ofp13.NewOfpFlowStatsRequest(
+		//	0,
+		//	ofp13.OFPTT_ALL,
+		//	ofp13.OFPP_ANY,
+		//	ofp13.OFPG_ANY,
+		//	0,
+		//	0,
+		//	ofp13.NewOfpMatch())
+		//sw.Send(flowStatsReq)
 	}
 }
 
