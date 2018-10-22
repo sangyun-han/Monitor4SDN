@@ -123,12 +123,14 @@ func (sw *OFSwitch) dispatchHandler(msg ofp13.OFMessage) {
 			// handle echo request
 			case ofp13.OFPT_ECHO_REQUEST:
 				if obj, ok := app.(Of13EchoRequestHandler); ok {
+					fmt.Println("Echo Request")
 					obj.HandleEchoRequest(msgi, sw)
 				}
 
 			// handle echo reply
 			case ofp13.OFPT_ECHO_REPLY:
 				if obj, ok := app.(Of13EchoReplyHandler); ok {
+					fmt.Println("Echo Reply")
 					obj.HandleEchoReply(msgi, sw)
 				}
 
