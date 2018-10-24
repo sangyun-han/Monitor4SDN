@@ -56,7 +56,14 @@ func NewOFController() *OFController {
 
 	config, err := loadConfig("conf.json")
 	if err != nil {
-		logger.Fatal("failed to load configuration file: ", err)
+		logger.Println("failed to load configuration file: ", err)
+		config = Configuration{
+			"sdn",
+			"127.0.0.1:8089",
+			"root",
+			"root",
+			1,
+		}
 	}
 
 	ofc.monitorInterval = config.MonitorInterval
